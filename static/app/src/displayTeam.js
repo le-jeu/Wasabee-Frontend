@@ -131,15 +131,7 @@ function list(teamID) {
   const teamTable = document.getElementById("teamTable");
 
   loadTeam(teamID).then(
-    (json) => {
-      let team = null;
-      try {
-        team = JSON.parse(json);
-      } catch (e) {
-        console.log(e);
-        notify(e);
-        return;
-      }
+    (team) => {
       teamName.textContent = team.name;
       for (const a of team.agents) {
         let state = "";
@@ -191,16 +183,8 @@ function map(teamID) {
   // const mapDiv = document.getElementById("map");
 
   loadTeam(teamID).then(
-    (json) => {
+    (team) => {
       const lls = new Array();
-      let team = null;
-      try {
-        team = JSON.parse(json);
-      } catch (e) {
-        console.log(e);
-        notify(e);
-        return;
-      }
       teamName.textContent = team.name;
       for (const a of team.agents) {
         if (a.lat) {
@@ -283,15 +267,7 @@ function manage(teamID) {
  */
 
   loadTeam(teamID).then(
-    (json) => {
-      let team = null;
-      try {
-        team = JSON.parse(json);
-      } catch (e) {
-        console.log(e);
-        notify(e);
-        return;
-      }
+    (team) => {
       teamName.textContent = team.name;
       for (const a of team.agents) {
         let state = "";
@@ -430,16 +406,7 @@ function settings(teamID) {
   const joinLink = document.getElementById("joinLink");
 
   loadTeam(teamID).then(
-    (json) => {
-      let team = null;
-      try {
-        team = JSON.parse(json);
-      } catch (e) {
-        console.log(e);
-        notify(e);
-        return;
-      }
-
+    (team) => {
       teamName.textContent = team.name;
       teamid.textContent = team.id;
       if (team.rc) rockscomm.value = team.rc;
