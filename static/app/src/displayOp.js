@@ -1,12 +1,14 @@
 import WasabeeOp from "./operation";
 import WasabeeLink from "./link";
+import WasabeeTeam from "./team";
+import WasabeeMe from "./me";
 import WasabeeMarker from "./marker";
 import { notify } from "./notify";
 // import Sortable, { MultiDrag, Swap} from 'sortablejs';
 import Sortable from "sortablejs";
 import "leaflet.geodesic";
 import { logEvent } from "./firebase";
-import { loadAgent } from "./server";
+import { loadTeam } from "./server";
 
 export function displayOp(state) {
   const subnav = document.getElementById("wasabeeSubnav");
@@ -59,12 +61,19 @@ export function displayOp(state) {
     keys(op);
   });
 
-  // let owned = false;
-  // determine if I own it...
-  let write = false;
-  // write access?
+  const me = WasabeeMe.get();
 
-  if (write) {
+  let owner = me.GoogleID == op.creator;
+  let write = false;
+
+  // async load of teams
+  const teamPromises = [];
+  for (const t of op.teamlist) {
+    if (t.role == "write") write = true;
+    teamPromises.push(loadTeam(t.teamid));
+  }
+
+  if (write || owner) {
     const m = `<li class="nav-item"><a class="nav-link" href="#operation.manage.${state.op}" id="opManage">Manage</a></li>`;
     opNavbar.insertAdjacentHTML("beforeend", m);
     const opManageNav = document.getElementById("opManage");
@@ -77,22 +86,24 @@ export function displayOp(state) {
     });
   }
 
-  switch (state.subscreen) {
-    case "checklist":
-      checklist(op);
-      break;
-    case "map":
-      map(op);
-      break;
-    case "manage":
-      manage(op);
-      break;
-    case "keys":
-      keys(op);
-      break;
-    default:
-      checklist(op);
-  }
+  Promise.allSettled(teamPromises).then(() => {
+    switch (state.subscreen) {
+      case "checklist":
+        checklist(op);
+        break;
+      case "map":
+        map(op);
+        break;
+      case "manage":
+        manage(op);
+        break;
+      case "keys":
+        keys(op);
+        break;
+      default:
+        checklist(op);
+    }
+  });
 }
 
 function checklist(op) {
@@ -160,9 +171,16 @@ function checklist(op) {
       const assignedToTD = L.DomUtil.create("td", null, row);
       assignedToTD.textContent = s.assignedTo;
       if (s.assignedTo != null && s.assignedTo != "") {
-        loadAgent(s.assignedTo).then(
-          (agent) => (assignedToTD.textContent = agent.name)
-        );
+        for (const teamEntry of op.teamlist) {
+          const team = WasabeeTeam.get(teamEntry.teamid);
+          if (team) {
+            const agent = team.getAgent(s.assignedTo);
+            if (agent) {
+              assignedToTD.textContent = agent.name;
+              break;
+            }
+          }
+        }
       }
       L.DomUtil.create("td", null, row).textContent = s.comment;
       L.DomUtil.create("td", null, row).textContent = s.state;
@@ -180,9 +198,16 @@ function checklist(op) {
       const assignedToTD = L.DomUtil.create("td", null, row);
       assignedToTD.textContent = s.assignedTo;
       if (s.assignedTo != null && s.assignedTo != "") {
-        loadAgent(s.assignedTo).then(
-          (agent) => (assignedToTD.textContent = agent.name)
-        );
+        for (const teamEntry of op.teamlist) {
+          const team = WasabeeTeam.get(teamEntry.teamid);
+          if (team) {
+            const agent = team.getAgent(s.assignedTo);
+            if (agent) {
+              assignedToTD.textContent = agent.name;
+              break;
+            }
+          }
+        }
       }
       L.DomUtil.create("td", null, row).textContent = s.comment;
       L.DomUtil.create("td", null, row).textContent = s.state;
