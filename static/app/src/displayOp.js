@@ -77,10 +77,10 @@ export function displayOp(state) {
     });
   }
 
-  const m = `<li class="nav-item"><a class="nav-link" id="opUpdate">Update</a></li>`;
+  const m = `<li class="nav-item"><a class="nav-link" id="opRefresh">🗘</a></li>`;
   opNavbar.insertAdjacentHTML("beforeend", m);
-  const opManageNav = document.getElementById("opUpdate");
-  L.DomEvent.on(opManageNav, "click", (ev) => {
+  const opRefreshNav = document.getElementById("opRefresh");
+  L.DomEvent.on(opRefreshNav, "click", (ev) => {
     L.DomEvent.stop(ev);
     const promises = [loadOp(state.op)];
     const teamset = new Set(op.teamlist.map((t) => t.teamid));
@@ -94,7 +94,7 @@ export function displayOp(state) {
       map(op);
       break;
     case "manage":
-      L.DomUtil.addClass(opManageNav, "active");
+      L.DomUtil.addClass(document.getElementById("opManage"), "active");
       manage(op);
       break;
     case "keys":
