@@ -8,7 +8,7 @@ import { notify } from "./notify";
 import Sortable from "sortablejs";
 import "leaflet.geodesic";
 import { logEvent } from "./firebase";
-import { loadTeam } from "./server";
+import { loadTeam, loadOp } from "./server";
 
 export function displayOp(state) {
   const subnav = document.getElementById("wasabeeSubnav");
@@ -27,7 +27,7 @@ export function displayOp(state) {
 </button>
 <div class="collapse navbar-collapse" id="opNav">
   <ul class="navbar-nav" id="opNavbar">
-   <li class="nav-item"><a class="nav-link active" href="#operation.checklist.${state.op}" id="opChecklist">Checklist</a></li>
+   <li class="nav-item"><a class="nav-link" href="#operation.checklist.${state.op}" id="opChecklist">Checklist</a></li>
    <li class="nav-item"><a class="nav-link" href="#operation.map.${state.op}" id="opMap">Map</a></li>
    <li class="nav-item"><a class="nav-link" href="#operation.keys.${state.op}" id="opKeys">Keys</a></li>
   </ul>
@@ -64,14 +64,9 @@ export function displayOp(state) {
   const me = WasabeeMe.get();
 
   let owner = me.GoogleID == op.creator;
-  let write = false;
 
-  // async load of teams
-  const teamPromises = [];
-  for (const t of op.teamlist) {
-    if (t.role == "write") write = true;
-    teamPromises.push(loadTeam(t.teamid));
-  }
+  let write = false;
+  for (const t of op.teamlist) if (t.role == "write") write = true;
 
   if (write || owner) {
     const m = `<li class="nav-item"><a class="nav-link" href="#operation.manage.${state.op}" id="opManage">Manage</a></li>`;
@@ -86,24 +81,35 @@ export function displayOp(state) {
     });
   }
 
-  Promise.allSettled(teamPromises).then(() => {
-    switch (state.subscreen) {
-      case "checklist":
-        checklist(op);
-        break;
-      case "map":
-        map(op);
-        break;
-      case "manage":
-        manage(op);
-        break;
-      case "keys":
-        keys(op);
-        break;
-      default:
-        checklist(op);
-    }
+  const m = `<li class="nav-item"><a class="nav-link" id="opUpdate">Update</a></li>`;
+  opNavbar.insertAdjacentHTML("beforeend", m);
+  const opManageNav = document.getElementById("opUpdate");
+  L.DomEvent.on(opManageNav, "click", (ev) => {
+    L.DomEvent.stop(ev);
+    const promises = [loadOp(state.op)];
+    const teamset = new Set(op.teamlist.map((t) => t.teamid));
+    for (const t of teamset) promises.push(loadTeam(t));
+    Promise.allSettled(promises).then(() => displayOp(history.state));
   });
+
+  switch (state.subscreen) {
+    case "map":
+      L.DomUtil.addClass(opMapNav, "active");
+      map(op);
+      break;
+    case "manage":
+      L.DomUtil.addClass(opManageNav, "active");
+      manage(op);
+      break;
+    case "keys":
+      L.DomUtil.addClass(opKeysNav, "active");
+      keys(op);
+      break;
+    case "checklist":
+    default:
+      L.DomUtil.addClass(opListNav, "active");
+      checklist(op);
+  }
 }
 
 function checklist(op) {
